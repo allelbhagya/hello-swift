@@ -1,59 +1,88 @@
-//
-//  ContentView.swift
-//  hello
-//
-//  Created by Bhagyalaxmi A on 12/08/25.
-//
-
 import SwiftUI
+import Foundation
 
-struct TodoItem: Identifiable {
-    let id = UUID()
-    var title: String
-    var isDone: Bool
+
+struct PersonData {
+    let gender: Double
+    let weight: Double
+    let overweight: Int
+}
+
+let dataset: [PersonData] = [
+    PersonData(gender: 0, weight: 48, overweight: 0),
+    PersonData(gender: 0, weight: 52, overweight: 0),
+    PersonData(gender: 0, weight: 55, overweight: 0),
+    PersonData(gender: 0, weight: 60, overweight: 0),
+    PersonData(gender: 0, weight: 63, overweight: 0),
+    PersonData(gender: 0, weight: 68, overweight: 1),
+    PersonData(gender: 0, weight: 72, overweight: 1),
+    PersonData(gender: 0, weight: 75, overweight: 1),
+    PersonData(gender: 0, weight: 80, overweight: 1),
+    PersonData(gender: 0, weight: 85, overweight: 1),
+    PersonData(gender: 1, weight: 60, overweight: 0),
+    PersonData(gender: 1, weight: 65, overweight: 0),
+    PersonData(gender: 1, weight: 70, overweight: 0),
+    PersonData(gender: 1, weight: 75, overweight: 0),
+    PersonData(gender: 1, weight: 78, overweight: 0),
+    PersonData(gender: 1, weight: 82, overweight: 1),
+    PersonData(gender: 1, weight: 85, overweight: 1),
+    PersonData(gender: 1, weight: 90, overweight: 1),
+    PersonData(gender: 1, weight: 95, overweight: 1),
+    PersonData(gender: 1, weight: 100, overweight: 1)
+]
+
+func knnPredict(gender: Double, weight: Double, k: Int) -> Int {
+    let distances = dataset.map { data -> (distance: Double, label: Int) in
+        let dg = data.gender - gender
+        let dw = data.weight - weight
+        let dist = sqrt(dg * dg + dw * dw)
+        return (dist, data.overweight)
+    }
+    
+    let kNearest = distances.sorted { $0.distance < $1.distance }.prefix(k)
+    
+    let ones = kNearest.filter { $0.label == 1 }.count
+    let zeros = kNearest.count - ones
+    
+    return ones > zeros ? 1 : 0
 }
 
 struct ContentView: View {
-    @State private var todos: [TodoItem] = [
-        TodoItem(title: "study swift", isDone: false),
-        TodoItem(title: "first app hello", isDone: true)
-    ]
-    
-    @State private var newTodo = ""
+    @State private var gender: Double = 0
+    @State private var weight: Double = 70
+    @State private var prediction: String = ""
 
     var body: some View {
-        VStack(alignment: .leading) {
-            Text("hey bhagya :)")
-                .font(.title2)
-                .padding(.bottom)
+        VStack(spacing: 20) {
+            Text("Overweight Predictor")
+                .font(.largeTitle)
+                .bold()
 
-            List {
-                ForEach($todos) { $todo in
-                    HStack {
-                        Toggle("", isOn: $todo.isDone)
-                            .toggleStyle(.checkbox) // macOS-specific style
-                        Text(todo.title)
-                            .strikethrough(todo.isDone, color: .gray)
-                            .foregroundColor(todo.isDone ? .gray : .primary)
-                    }
-                }
-                .onDelete { indexSet in
-                    todos.remove(atOffsets: indexSet)
-                }
+            Picker("Gender", selection: $gender) {
+                Text("Female").tag(0.0)
+                Text("Male").tag(1.0)
             }
-            .listStyle(.inset)
+            .pickerStyle(.segmented)
+            .frame(width: 200)
 
-            HStack {
-                TextField("New task", text: $newTodo)
-                Button("Add") {
-                    guard !newTodo.isEmpty else { return }
-                    todos.append(TodoItem(title: newTodo, isDone: false))
-                    newTodo = ""
-                }
+            Stepper(value: $weight, in: 30...150, step: 1) {
+                Text("Weight: \(Int(weight)) kg")
             }
-            .padding(.top)
+            .frame(width: 200)
+
+            Button("Predict") {
+                let result = knnPredict(gender: gender, weight: weight, k: 3)
+                prediction = result == 1 ? "overweight" : "normal"
+            }
+            .buttonStyle(.borderedProminent)
+
+            Text(prediction)
+                .font(.title)
+                .bold()
+                .padding(.top)
         }
         .padding()
+        .frame(minWidth: 300, minHeight: 300)
     }
 }
 
